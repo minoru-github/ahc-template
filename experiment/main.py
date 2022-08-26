@@ -7,10 +7,10 @@ import time
 
 def compute_score():
     total = 0
-    data_path = "./in0-9/"
+    data_path = "./data/"
     os.chdir('../')
     for filename in pathlib.Path(data_path).glob("*.txt"):
-        cmd = "cargo run -q --release --bin ahc013 > ./out/" + filename.name
+        cmd = "cargo run -q --release --bin ahc > ./out/" + filename.name
         path = os.path.join(os.getcwd(), filename)
         with open(path) as text:
             time_start = time.time()
@@ -32,5 +32,5 @@ def compute_score():
 
 score = compute_score()
 os.chdir('./experiment')
-with mlflow.start_run(run_name="ahc013"):
+with mlflow.start_run(run_name="ahc"):
     mlflow.log_metric(key="total score", value=score)
