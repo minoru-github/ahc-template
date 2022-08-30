@@ -82,16 +82,16 @@ impl Input {
 
 #[derive(Debug, Clone)]
 pub struct State {
-    best_score: usize,
+    score: usize,
 }
 
 impl State {
     fn new(input: &Input) -> Self {
-        State { best_score: 0 }
+        State { score: 0 }
     }
 
     fn output(&self) {
-        eprintln!("{}", self.best_score);
+        eprintln!("{}", self.score);
     }
 }
 
