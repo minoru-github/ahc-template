@@ -1,5 +1,6 @@
 #![allow(unused)]
 use itertools::Itertools;
+use my_lib::XY;
 use num::{integer::Roots, Integer, ToPrimitive};
 use proconio::input;
 use rand::prelude::*;
@@ -123,4 +124,52 @@ impl Sim {
     }
 }
 
-mod my_lib {}
+mod my_lib {
+    use super::*;
+    #[derive(Debug, Clone, PartialEq)]
+    pub struct XY {
+        y: usize, // ↓
+        x: usize, // →
+        width: usize,
+    }
+
+    impl XY {
+        fn new(x: usize, y: usize, width: usize) -> Self {
+            XY { x, y, width }
+        }
+
+        fn to_1d(&self) -> usize {
+            self.y * self.width + self.x
+        }
+
+        fn to_2d(index: usize, width: usize) -> Self {
+            XY {
+                x: index % width,
+                y: index / width,
+                width,
+            }
+        }
+    }
+
+    impl Add for XY {
+        type Output = Result<XY, &'static str>;
+        fn add(self, rhs: Self) -> Self::Output {
+            let (x, y) = if cfg!(debug_assertions) {
+                // debugではオーバーフローでpanic発生するため、オーバーフローの溢れを明確に無視する(※1.60場合。それ以外は不明)
+                (self.x.wrapping_add(rhs.x), self.y.wrapping_add(rhs.y))
+            } else {
+                (self.x + rhs.x, self.y + rhs.y)
+            };
+
+            if x >= self.width || y >= self.width {
+                Err("out of range")
+            } else {
+                Ok(XY {
+                    x,
+                    y,
+                    width: self.width,
+                })
+            }
+        }
+    }
+}
