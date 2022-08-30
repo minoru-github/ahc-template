@@ -26,10 +26,27 @@ mod solver {
     use super::*;
 
     pub fn mountain(input: &Input) -> State {
+        let update_state = |best_score: &mut usize, state: &mut State, old_state: &State| {
+            if *best_score > state.score {
+                *best_score = state.score.clone();
+            } else {
+                *state = (*old_state).clone();
+            }
+        };
+
         let mut rng: Mcg128Xsl64 = rand_pcg::Pcg64Mcg::new(890482);
 
+        let mut best_score = 0;
         let mut state = State::new(&input);
-        while time::update() < 0.3 {}
+        while time::update() < 0.3 {
+            let old_state = state.clone();
+
+            // 近傍探索
+
+            // スコア計算
+
+            update_state(&mut best_score, &mut state, &old_state);
+        }
 
         state
     }
