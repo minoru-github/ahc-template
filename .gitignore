@@ -2,3 +2,4 @@
 *.txt
 /experiment/venv
 mlruns
+*.ini
