@@ -2,7 +2,10 @@
 use itertools::Itertools;
 use my_lib::XY;
 use num::{integer::Roots, Integer, ToPrimitive};
-use proconio::input;
+use proconio::{
+    input,
+    marker::{Bytes, Chars},
+};
 use rand::prelude::*;
 use rand_pcg::Mcg128Xsl64;
 use std::{
@@ -84,8 +87,9 @@ impl Input {
         // (a,b) : (型, 型)
         // a_vec : [型;サイズ]
         // a_vec2 : [[型;サイズ];サイズ]
-        // S : [chars; n] or Chars
+        // S : [char; n] or Chars ← Vec<char>
         // s_vec : [String; n]
+        // bytes : Bytes ← Vec<u8>
         input! {
             n:usize,
         };
