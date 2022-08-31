@@ -138,15 +138,15 @@ mod my_lib {
     }
 
     impl XY {
-        fn new(x: usize, y: usize, width: usize) -> Self {
+        pub fn new(x: usize, y: usize, width: usize) -> Self {
             XY { x, y, width }
         }
 
-        fn to_1d(&self) -> usize {
+        pub fn to_1d(&self) -> usize {
             self.y * self.width + self.x
         }
 
-        fn to_2d(index: usize, width: usize) -> Self {
+        pub fn to_2d(index: usize, width: usize) -> Self {
             XY {
                 x: index % width,
                 y: index / width,
