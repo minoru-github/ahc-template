@@ -75,6 +75,13 @@ impl Sim {
 
         best_state.output();
     }
+
+    fn debug(&self, best_state: &State, state: &State) {
+        // eprintln!(
+        //     "x : {}, score {}, best_x:{}, best_score:{}",
+        //     state.x, state.score, best_state.x, best_state.score
+        // );
+    }
 }
 
 #[derive(Debug, Clone)]
