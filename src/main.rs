@@ -19,60 +19,61 @@ use std::{
 use superslice::Ext;
 
 fn main() {
-    let input = Input::read();
-
-    let best_state = solver::mountain(&input);
-
-    best_state.output();
+    Sim::new().run();
 }
 
-mod solver {
-    use super::*;
+#[derive(Debug, Clone)]
+pub struct State {
+    score: usize,
+}
 
-    pub fn mountain(input: &Input) -> State {
-        let update_state = |best_score: &mut usize, state: &mut State, old_state: &State| {
-            if *best_score > state.score {
-                *best_score = state.score.clone();
-            } else {
-                *state = (*old_state).clone();
-            }
-        };
+impl State {
+    fn new() -> Self {
+        State { score: 0 }
+    }
 
-        let mut rng: Mcg128Xsl64 = rand_pcg::Pcg64Mcg::new(890482);
+    pub fn change(&mut self, rng: &mut Mcg128Xsl64) {
+        //let val = rng.gen_range(-3, 4);
+        //self.x += val;
+    }
 
-        let mut best_score = 0;
-        let mut state = State::new(&input);
-        while time::update() < 0.3 {
-            let old_state = state.clone();
-
-            // 近傍探索
-
-            // スコア計算
-
-            update_state(&mut best_score, &mut state, &old_state);
-        }
-
-        state
+    fn output(&self) {
+        eprintln!("{}", self.score);
     }
 }
 
-mod time {
-    pub(super) fn update() -> f64 {
-        static mut STARTING_TIME_MS: Option<f64> = None;
-        let t = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap();
-        let time_ms = t.as_secs() as f64 + t.subsec_nanos() as f64 * 1e-9;
-        unsafe {
-            let now = match STARTING_TIME_MS {
-                Some(starting_time_ms) => time_ms - starting_time_ms,
-                None => {
-                    STARTING_TIME_MS = Some(time_ms);
-                    0.0 as f64
-                }
-            };
-            now
+#[derive(Debug, Clone)]
+pub struct Sim {
+    input: Input,
+}
+
+impl Sim {
+    fn new() -> Self {
+        let input = Input::read();
+        Sim { input }
+    }
+
+    fn compute_score(&self, state: &mut State) {
+        //state.score = 0;
+    }
+
+    pub fn run(&self) {
+        let mut rng: Mcg128Xsl64 = rand_pcg::Pcg64Mcg::new(890482);
+
+        let mut state = State::new();
+        let mut best_state = state.clone();
+        while my_lib::time::update() < 0.3 {
+            // 近傍探索
+            state.change(&mut rng);
+
+            // スコア計算
+            self.compute_score(&mut state);
+
+            // 状態更新
+            solver::mountain(&mut best_state, &mut state);
         }
+
+        best_state.output();
     }
 }
 
@@ -102,34 +103,45 @@ impl Input {
     }
 }
 
-#[derive(Debug, Clone)]
-pub struct State {
-    score: usize,
-}
+mod solver {
+    use super::State;
+    pub fn mountain(best_state: &mut State, state: &mut State) {
+        //! bese_state(self)を更新する。<br>
+        //! 新しいStateのほうが悪いStateの場合は、stateをbest_stateに戻す。
 
-impl State {
-    fn new(input: &Input) -> Self {
-        State { score: 0 }
-    }
-
-    fn output(&self) {
-        eprintln!("{}", self.score);
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct Sim {
-    n: usize,
-}
-
-impl Sim {
-    fn new(input: &Input) -> Self {
-        Sim { n: input.n }
+        // 最小化の場合は > , 最大化の場合は < 。
+        if best_state.score > state.score {
+            *best_state = state.clone();
+        } else {
+            *state = best_state.clone();
+        }
     }
 }
 
 mod my_lib {
+    //! 基本的に問題によらず変えない自作ライブラリ群
     use super::*;
+    pub mod time {
+        //! 時間管理モジュール
+        pub fn update() -> f64 {
+            static mut STARTING_TIME_MS: Option<f64> = None;
+            let t = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap();
+            let time_ms = t.as_secs() as f64 + t.subsec_nanos() as f64 * 1e-9;
+            unsafe {
+                let now = match STARTING_TIME_MS {
+                    Some(starting_time_ms) => time_ms - starting_time_ms,
+                    None => {
+                        STARTING_TIME_MS = Some(time_ms);
+                        0.0 as f64
+                    }
+                };
+                now
+            }
+        }
+    }
+
     #[derive(Debug, Clone, PartialEq)]
     pub struct XY {
         y: usize, // ↓
