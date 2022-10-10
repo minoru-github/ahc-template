@@ -32,62 +32,78 @@ impl State {
         State { score: 0 }
     }
 
-    pub fn change(&mut self, rng: &mut Mcg128Xsl64) {
+    fn change(&mut self, output: &mut Output, rng: &mut Mcg128Xsl64) {
         //let val = rng.gen_range(-3, 4);
         //self.x += val;
     }
 
-    fn output(&self) {
-        eprintln!("{}", self.score);
+    fn compute_score(&mut self) {
+        //self.score = 0;
     }
 }
 
 #[derive(Debug, Clone)]
 pub struct Sim {
     input: Input,
+    cnt: usize,
+    current_time: f64,
 }
 
 impl Sim {
     fn new() -> Self {
         let input = Input::read();
-        Sim { input }
+        Sim {
+            input,
+            cnt: 0,
+            current_time: 0.0,
+        }
     }
 
-    fn compute_score(&self, state: &mut State) {
-        //state.score = 0;
-    }
-
-    pub fn run(&self) {
+    pub fn run(&mut self) {
         let mut rng: Mcg128Xsl64 = rand_pcg::Pcg64Mcg::new(890482);
 
-        let mut state = State::new();
-        self.compute_score(&mut state);
+        //let mut initial_state = State::new();
+        let mut best_output = Output::new();
+        let mut best_state = State::new();
+        best_state.compute_score();
 
-        let mut best_state = state.clone();
-        loop {
-            let current_time = my_lib::time::update();
-            if current_time >= my_lib::time::LIMIT {
+        'outer: loop {
+            self.current_time = my_lib::time::update();
+            if self.current_time >= my_lib::time::LIMIT {
                 break;
             }
 
-            // 近傍探索
-            state.change(&mut rng);
+            let mut output = Output::new();
+
+            // A:近傍探索
+            let mut state: State = best_state.clone();
+            state.change(&mut output, &mut rng);
+
+            // B:壊して再構築
+            // best_outputの一部を破壊して、それまでのoutputを使ってstateを作り直して再構築したり
+            // outputの変形
+            // best_output.remove(&mut output, &mut rng);
+            // let mut state: State = initial_state.clone();
+            // stateを新outputの情報で復元
+            // そこから続きやる
 
             // スコア計算
-            self.compute_score(&mut state);
+            state.compute_score();
 
             // 状態更新
-            solver::mountain(&mut best_state, &mut state);
+            solver::mountain(&mut best_state, &state, &mut best_output, &output);
+            //solver::simulated_annealing(&mut best_state, &state, &mut best_output, &output, self.current_time, &mut rng);
         }
 
-        best_state.output();
+        best_output.submit();
+
+        self.debug(&best_state);
     }
 
-    fn debug(&self, best_state: &State, state: &State) {
-        // eprintln!(
-        //     "x : {}, score {}, best_x:{}, best_score:{}",
-        //     state.x, state.score, best_state.x, best_state.score
-        // );
+    fn debug(&self, best_state: &State) {
+        eprintln!("{} ", self.cnt);
+        eprintln!("{} ", best_state.score);
+        //eprintln!("{:.3} ", self.current_time);
     }
 }
 
@@ -117,25 +133,54 @@ impl Input {
     }
 }
 
+#[derive(Debug, Clone)]
+pub struct Output {
+    //score: usize,
+}
+
+impl Output {
+    fn new() -> Self {
+        Output {}
+    }
+
+    fn remove(&self, output: &mut Self, rng: &mut Mcg128Xsl64) {
+        // https://atcoder.jp/contests/ahc014/submissions/35567589 L558
+    }
+
+    fn submit(&self) {
+        //println!("{}", );
+    }
+}
+
 mod solver {
     use super::*;
 
-    pub fn mountain(best_state: &mut State, state: &mut State) {
-        //! bese_state(self)を更新する。<br>
-        //! 新しいStateのほうが悪いStateの場合は、stateをbest_stateに戻す。
+    pub fn mountain(
+        best_state: &mut State,
+        state: &State,
+        best_output: &mut Output,
+        output: &Output,
+    ) {
+        //! bese_state(self)を更新する。
 
         // 最小化の場合は > , 最大化の場合は < 。
         if best_state.score > state.score {
             *best_state = state.clone();
-        } else {
-            *state = best_state.clone();
+            *best_output = output.clone();
         }
     }
 
     const T0: f64 = 2e3;
     //const T1: f64 = 6e2; // 終端温度が高いと最後まで悪いスコアを許容する
     const T1: f64 = 6e1; // 終端温度が高いと最後まで悪いスコアを許容する
-    pub fn sa(best_state: &mut State, state: &mut State, current_time: f64, rng: &mut Mcg128Xsl64) {
+    pub fn simulated_annealing(
+        best_state: &mut State,
+        state: &State,
+        best_output: &mut Output,
+        output: &Output,
+        current_time: f64,
+        rng: &mut Mcg128Xsl64,
+    ) {
         //! 焼きなまし法
         //! https://scrapbox.io/minyorupgc/%E7%84%BC%E3%81%8D%E3%81%AA%E3%81%BE%E3%81%97%E6%B3%95
 
@@ -159,10 +204,10 @@ mod solver {
 
         if delta < 0.0 {
             *best_state = state.clone();
+            *best_output = output.clone();
         } else if rng.gen_bool(prob) {
             *best_state = state.clone();
-        } else {
-            *state = best_state.clone();
+            *best_output = output.clone();
         }
     }
 }
@@ -195,8 +240,8 @@ mod my_lib {
 
     #[derive(Debug, Clone, PartialEq)]
     pub struct XY {
-        y: usize, // ↓
         x: usize, // →
+        y: usize, // ↓
         width: usize,
     }
 
