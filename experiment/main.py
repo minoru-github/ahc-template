@@ -5,6 +5,7 @@ from subprocess import PIPE
 import os
 import time
 
+
 class Color:
     BLACK = '\033[30m'  # (文字)黒
     RED = '\033[31m'  # (文字)赤
@@ -40,18 +41,15 @@ def compute_score():
         cmd = "cargo run -q --release --bin ahc > ./out/" + filename.name
         path = os.path.join(os.getcwd(), filename)
         with open(path) as text:
-            time_start = time.time()
             proc = subprocess.run(cmd, shell=True, stdin=text,
                                   stdout=PIPE, stderr=PIPE, text=True)
-            time_end = time.time()
-            elapsed = time_end-time_start
 
             # 標準エラー出力をパース
             out = proc.stderr.splitlines()
             cnt = int(out[0])
             total_cnt += cnt
             score = int(out[1])
-            total_score += score
+            duration = float(out[2])
 
             check_point_col = Color.BG_DEFAULT
             if (i+1) % 5 == 0:
@@ -76,7 +74,7 @@ def compute_score():
                   + "cnt: {:5d}, ".format(cnt)
                   + "total_cnt: {}{}{}, " .format(check_point_col,
                                                   total_cnt, Color.RESET)
-                  + "time: {:.2f}".format(elapsed))
+                  + "time: {:.3f}".format(duration))
 
     print("total: {}".format(total_score))
     return total_score

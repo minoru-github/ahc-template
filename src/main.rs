@@ -19,7 +19,13 @@ use std::{
 use superslice::Ext;
 
 fn main() {
+    let start_time = my_lib::time::update();
+
     Sim::new().run();
+
+    let end_time = my_lib::time::update();
+    let duration = end_time - start_time;
+    eprintln!("{:?} ", duration);
 }
 
 #[derive(Debug, Clone)]
@@ -45,22 +51,17 @@ impl State {
 #[derive(Debug, Clone)]
 pub struct Sim {
     input: Input,
-    cnt: usize,
-    current_time: f64,
 }
 
 impl Sim {
     fn new() -> Self {
         let input = Input::read();
-        Sim {
-            input,
-            cnt: 0,
-            current_time: 0.0,
-        }
+        Sim { input }
     }
 
     pub fn run(&mut self) {
         let mut rng: Mcg128Xsl64 = rand_pcg::Pcg64Mcg::new(890482);
+        let mut cnt = 0 as usize;   // 試行回数
 
         //let mut initial_state = State::new();
         let mut best_output = Output::new();
@@ -68,10 +69,12 @@ impl Sim {
         best_state.compute_score();
 
         'outer: loop {
-            self.current_time = my_lib::time::update();
-            if self.current_time >= my_lib::time::LIMIT {
+            let current_time = my_lib::time::update();
+            if current_time >= my_lib::time::LIMIT {
                 break;
             }
+
+            cnt += 1;
 
             let mut output = Output::new();
 
@@ -97,13 +100,8 @@ impl Sim {
 
         best_output.submit();
 
-        self.debug(&best_state);
-    }
-
-    fn debug(&self, best_state: &State) {
-        eprintln!("{} ", self.cnt);
+        eprintln!("{} ", cnt);
         eprintln!("{} ", best_state.score);
-        //eprintln!("{:.3} ", self.current_time);
     }
 }
 
@@ -126,10 +124,6 @@ impl Input {
         };
 
         Input { n }
-    }
-
-    fn debug(result: &Result<Input, &str>) {
-        println!("{:?}", result);
     }
 }
 
