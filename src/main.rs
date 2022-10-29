@@ -1,9 +1,11 @@
 #![allow(unused)]
 use itertools::Itertools;
-use my_lib::XY;
+use my_lib::*;
 use num::{integer::Roots, Integer, ToPrimitive};
+use procon_input::*;
 use proconio::{
-    input,
+    fastout,
+    //input,
     marker::{Bytes, Chars},
 };
 use rand::prelude::*;
@@ -18,6 +20,7 @@ use std::{
 };
 use superslice::Ext;
 
+//#[fastout]
 fn main() {
     let start_time = my_lib::time::update();
 
@@ -61,7 +64,7 @@ impl Sim {
 
     pub fn run(&mut self) {
         let mut rng: Mcg128Xsl64 = rand_pcg::Pcg64Mcg::new(890482);
-        let mut cnt = 0 as usize;   // 試行回数
+        let mut cnt = 0 as usize; // 試行回数
 
         //let mut initial_state = State::new();
         let mut best_output = Output::new();
@@ -112,16 +115,7 @@ pub struct Input {
 
 impl Input {
     fn read() -> Self {
-        // a : 型
-        // (a,b) : (型, 型)
-        // a_vec : [型;サイズ]
-        // a_vec2 : [[型;サイズ];サイズ]
-        // S : [char; n] or Chars ← Vec<char>
-        // s_vec : [String; n]
-        // bytes : Bytes ← Vec<u8>
-        input! {
-            n:usize,
-        };
+        let n = read_u();
 
         Input { n }
     }
@@ -232,33 +226,52 @@ mod my_lib {
         pub const LIMIT: f64 = 0.3;
     }
 
-    #[derive(Debug, Clone, PartialEq)]
-    pub struct XY {
-        x: usize, // →
-        y: usize, // ↓
-        width: usize,
+    pub trait Mat<S, T> {
+        fn set(&mut self, p: S, value: T);
+        fn get(&self, p: S) -> T;
+        fn swap(&mut self, p1: S, p2: S);
     }
 
-    impl XY {
-        pub fn new(x: usize, y: usize, width: usize) -> Self {
-            XY { x, y, width }
+    impl<T> Mat<&Point, T> for Vec<Vec<T>>
+    where
+        T: Copy,
+    {
+        fn set(&mut self, p: &Point, value: T) {
+            self[p.y][p.x] = value;
         }
 
-        pub fn to_1d(&self) -> usize {
-            self.y * self.width + self.x
+        fn get(&self, p: &Point) -> T {
+            self[p.y][p.x]
         }
 
-        pub fn to_2d(index: usize, width: usize) -> Self {
-            XY {
-                x: index % width,
-                y: index / width,
-                width,
-            }
+        fn swap(&mut self, p1: &Point, p2: &Point) {
+            let tmp = self[p1.y][p1.x];
+            self[p1.y][p1.x] = self[p2.y][p2.x];
+            self[p2.y][p2.x] = tmp;
         }
     }
 
-    impl Add for XY {
-        type Output = Result<XY, &'static str>;
+    impl<T> Mat<Point, T> for Vec<Vec<T>>
+    where
+        T: Copy,
+    {
+        fn set(&mut self, p: Point, value: T) {
+            self[p.y][p.x] = value;
+        }
+
+        fn get(&self, p: Point) -> T {
+            self[p.y][p.x]
+        }
+
+        fn swap(&mut self, p1: Point, p2: Point) {
+            let tmp = self[p1.y][p1.x];
+            self[p1.y][p1.x] = self[p2.y][p2.x];
+            self[p2.y][p2.x] = tmp;
+        }
+    }
+
+    impl Add for Point {
+        type Output = Result<Point, &'static str>;
         fn add(self, rhs: Self) -> Self::Output {
             let (x, y) = if cfg!(debug_assertions) {
                 // debugではオーバーフローでpanic発生するため、オーバーフローの溢れを明確に無視する(※1.60場合。それ以外は不明)
@@ -267,15 +280,169 @@ mod my_lib {
                 (self.x + rhs.x, self.y + rhs.y)
             };
 
-            if x >= self.width || y >= self.width {
-                Err("out of range")
-            } else {
-                Ok(XY {
-                    x,
-                    y,
-                    width: self.width,
-                })
+            unsafe {
+                if let Some(width) = WIDTH {
+                    if x >= width || y >= width {
+                        return Err("out of range");
+                    }
+                }
+            }
+
+            Ok(Point { x, y })
+        }
+    }
+
+    static mut WIDTH: Option<usize> = None;
+
+    #[derive(Debug, Clone, PartialEq, Eq, Copy)]
+    pub struct Point {
+        pub x: usize, // →
+        pub y: usize, // ↑
+    }
+
+    impl Point {
+        pub fn new(x: usize, y: usize) -> Self {
+            Point { x, y }
+        }
+
+        pub fn set_width(width: usize) {
+            unsafe {
+                WIDTH = Some(width);
             }
         }
     }
+}
+
+mod procon_input {
+    //! This input module is written with reference to MoSoon.
+    //! (https://atcoder.jp/users/MoSooN)
+    //! Very, Very thank to MoSoon!
+    use std::io::*;
+
+    fn read<T: std::str::FromStr>() -> T {
+        let mut s = String::new();
+        stdin().read_line(&mut s).ok();
+        s.trim().parse().ok().unwrap()
+    }
+
+    pub fn read_vec<T: std::str::FromStr>() -> Vec<T> {
+        read::<String>()
+            .split_whitespace()
+            .map(|e| e.parse().ok().unwrap())
+            .collect()
+    }
+
+    // pub fn read_mat<T: std::str::FromStr>(n: usize) -> Vec<Vec<T>> {
+    //     (0..n).map(|_| read_vec()).collect()
+    // }
+
+    pub fn read_i() -> (i64) {
+        let mut str = String::new();
+        let _ = stdin().read_line(&mut str).unwrap();
+        let mut iter = str.split_whitespace();
+        iter.next().unwrap().parse::<i64>().unwrap()
+    }
+
+    pub fn read_ii() -> (i64, i64) {
+        let mut str = String::new();
+        let _ = stdin().read_line(&mut str).unwrap();
+        let mut iter = str.split_whitespace();
+        (
+            iter.next().unwrap().parse::<i64>().unwrap(),
+            iter.next().unwrap().parse::<i64>().unwrap(),
+        )
+    }
+
+    pub fn read_iii() -> (i64, i64, i64) {
+        let mut str = String::new();
+        let _ = stdin().read_line(&mut str).unwrap();
+        let mut iter = str.split_whitespace();
+        (
+            iter.next().unwrap().parse::<i64>().unwrap(),
+            iter.next().unwrap().parse::<i64>().unwrap(),
+            iter.next().unwrap().parse::<i64>().unwrap(),
+        )
+    }
+
+    pub fn read_u() -> (usize) {
+        let mut str = String::new();
+        let _ = stdin().read_line(&mut str).unwrap();
+        let mut iter = str.split_whitespace();
+        iter.next().unwrap().parse::<usize>().unwrap()
+    }
+
+    pub fn read_uu() -> (usize, usize) {
+        let mut str = String::new();
+        let _ = stdin().read_line(&mut str).unwrap();
+        let mut iter = str.split_whitespace();
+        (
+            iter.next().unwrap().parse::<usize>().unwrap(),
+            iter.next().unwrap().parse::<usize>().unwrap(),
+        )
+    }
+
+    pub fn read_uuu() -> (usize, usize, usize) {
+        let mut str = String::new();
+        let _ = stdin().read_line(&mut str).unwrap();
+        let mut iter = str.split_whitespace();
+        (
+            iter.next().unwrap().parse::<usize>().unwrap(),
+            iter.next().unwrap().parse::<usize>().unwrap(),
+            iter.next().unwrap().parse::<usize>().unwrap(),
+        )
+    }
+
+    pub fn read_u_vec<T: std::str::FromStr>() -> Vec<usize> {
+        read::<String>()
+            .split_whitespace()
+            .map(|e| e.parse().ok().unwrap())
+            .collect()
+    }
+
+    pub fn read_f() -> (f64) {
+        let mut str = String::new();
+        let _ = stdin().read_line(&mut str).unwrap();
+        let mut iter = str.split_whitespace();
+        iter.next().unwrap().parse::<f64>().unwrap()
+    }
+
+    pub fn read_ff() -> (f64, f64) {
+        let mut str = String::new();
+        let _ = stdin().read_line(&mut str).unwrap();
+        let mut iter = str.split_whitespace();
+        (
+            iter.next().unwrap().parse::<f64>().unwrap(),
+            iter.next().unwrap().parse::<f64>().unwrap(),
+        )
+    }
+
+    pub fn read_c() -> (char) {
+        let mut str = String::new();
+        let _ = stdin().read_line(&mut str).unwrap();
+        let mut iter = str.split_whitespace();
+        iter.next().unwrap().parse::<char>().unwrap()
+    }
+
+    pub fn read_cc() -> (char, char) {
+        let mut str = String::new();
+        let _ = stdin().read_line(&mut str).unwrap();
+        let mut iter = str.split_whitespace();
+        (
+            iter.next().unwrap().parse::<char>().unwrap(),
+            iter.next().unwrap().parse::<char>().unwrap(),
+        )
+    }
+
+    pub fn read_chars() -> Vec<char> {
+        let mut vec = Vec::new();
+        read::<String>()
+            .as_bytes()
+            .iter()
+            .for_each(|&b| vec.push(b as char));
+        vec
+    }
+
+    // pub fn read_string() -> String {
+    //     read::<String>()
+    // }
 }
