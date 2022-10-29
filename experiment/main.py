@@ -49,6 +49,7 @@ def compute_score():
             cnt = int(out[0])
             total_cnt += cnt
             score = int(out[1])
+            total_score += score
             duration = float(out[2])
 
             check_point_col = Color.BG_DEFAULT
