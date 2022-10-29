@@ -58,6 +58,7 @@ pub struct Sim {
 
 impl Sim {
     fn new() -> Self {
+        // TODO: impl input
         let input = Input::read();
         Sim { input }
     }
@@ -223,6 +224,7 @@ mod my_lib {
             }
         }
 
+        // TODO: set LIMIT
         pub const LIMIT: f64 = 0.3;
     }
 
