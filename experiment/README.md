@@ -1,4 +1,6 @@
 # experiment
+Open `cmd` in `./experiment` folder.  
+Run commands below.  
 
 ```
 python -m venv venv
