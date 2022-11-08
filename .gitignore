@@ -3,5 +3,5 @@
 /experiment/venv
 mlruns
 *.ini
-*.cpy
+*.pyc
 *.exe
