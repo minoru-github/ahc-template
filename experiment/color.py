@@ -36,4 +36,10 @@ def set_color_to_score(score):
         score_col = Color.MAGENTA
     else:
         score_col = Color.RED
-    score_col
+    return score_col
+
+def set_color_to_check_point(i):
+    check_point_col = Color.BG_DEFAULT
+    if (i+1) % 5 == 0:
+        check_point_col = Color.MAGENTA
+    return check_point_col
