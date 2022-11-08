@@ -1,6 +1,14 @@
 # experiment
-Open `cmd` in `./experiment` folder.  
-Run commands below.  
+
+* Create "data" directory, and save input files to `./data`.  
+* Create "out" directory.  
+```
+└─./experiment
+    ├─./data
+    └─./out
+```
+* Open `cmd` in `./experiment` directory.  
+* Run commands below.  
 
 ```
 python -m venv venv

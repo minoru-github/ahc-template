@@ -3,43 +3,50 @@ import pathlib
 import subprocess
 from subprocess import PIPE
 import os
-from color import Color
+from color import *
+import datetime
+
+def prepare_execute_file():
+    os.chdir('../')
+    cmd = "cargo build -q --release"
+    subprocess.run(cmd)
+    print("build complete")
+
+    cmd = "copy /y .\\target\\release\\ahc.exe .\\experiment\\ahc.exe"
+    subprocess.run(cmd, shell=True)
+    os.chdir('./experiment')
+    path = pathlib.Path('ahc.exe')
+    dt = datetime.datetime.fromtimestamp(path.stat().st_ctime)
+    print("updated {}\n".format(dt.strftime('%Y年%m月%d日 %H:%M:%S')))
+
+
+def parse(proc):
+    # 標準エラー出力をパース
+    out = proc.stderr.splitlines()
+    cnt = int(out[0])
+    score = int(out[1])
+    duration = float(out[2])
+    return cnt, score, duration
+
 
 def compute_score():
     total_score = 0
     total_cnt = 0
     data_path = "./data/"
-    os.chdir('../')
     for i, filename in enumerate(pathlib.Path(data_path).glob("*.txt")):
-        cmd = "cargo run -q --release --bin ahc > ./out/" + filename.name
+        print(filename)
+        cmd = "ahc.exe > ./out/" + filename.name
         path = os.path.join(os.getcwd(), filename)
         with open(path) as text:
             proc = subprocess.run(cmd, shell=True, stdin=text,
                                   stdout=PIPE, stderr=PIPE, text=True)
 
-            # 標準エラー出力をパース
-            out = proc.stderr.splitlines()
-            cnt = int(out[0])
+            cnt, score, duration = parse(proc)
             total_cnt += cnt
-            score = int(out[1])
             total_score += score
-            duration = float(out[2])
 
-            check_point_col = Color.BG_DEFAULT
-            if (i+1) % 5 == 0:
-                check_point_col = Color.MAGENTA
-
-            score_col = Color.BG_DEFAULT
-            if score < 700000:
-                score_col = Color.BLUE
-            elif score < 800000:
-                score_col = Color.GREEN
-            elif score < 900000:
-                score_col = Color.YELLOW
-            elif score < 1000000:
-                score_col = Color.MAGENTA
-            else:
-                score_col = Color.RED
+            check_point_col = set_color_to_check_point(i)
+            score_col = set_color_to_score(score)
 
             print("{} => ".format(filename.name[:4])
                   + "total_score: {}{}{}, ".format(check_point_col,
@@ -58,7 +65,8 @@ def compute_score():
 #         mlflow.log_metric(key="train acc", value = 2*epoch, step=epoch)
 
 
-score = compute_score()
-os.chdir('./experiment')
-with mlflow.start_run(run_name="ahc"):
-    mlflow.log_metric(key="total score", value=score)
+if __name__ == "__main__":
+    prepare_execute_file()
+    total_score = compute_score()
+    with mlflow.start_run(run_name="ahc"):
+        mlflow.log_metric(key="total score", value=total_score)
