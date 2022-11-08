@@ -3,7 +3,6 @@ import pathlib
 import subprocess
 from subprocess import PIPE
 import os
-import time
 from color import Color
 
 def compute_score():
