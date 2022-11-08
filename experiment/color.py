@@ -22,3 +22,18 @@ class Color:
     BG_WHITE = '\033[47m'  # (背景)白
     BG_DEFAULT = '\033[49m'  # 背景色をデフォルトに戻す
     RESET = '\033[0m'  # 全てリセット
+
+
+def set_color_to_score(score):
+    score_col = Color.BG_DEFAULT
+    if score < 700000:
+        score_col = Color.BLUE
+    elif score < 800000:
+        score_col = Color.GREEN
+    elif score < 900000:
+        score_col = Color.YELLOW
+    elif score < 1000000:
+        score_col = Color.MAGENTA
+    else:
+        score_col = Color.RED
+    score_col
