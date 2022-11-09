@@ -22,79 +22,60 @@ def prepare_execute_file():
     print("updated {}\n".format(dt.strftime('%Y年%m月%d日 %H:%M:%S')))
 
 
-def parse(proc):
+def parse_from_stderr(stderr: str):
     # 標準エラー出力をパース
-    out = proc.stderr.splitlines()
+    out = stderr.splitlines()
     cnt = int(out[0])
     score = int(out[1])
     duration = float(out[2])
     return cnt, score, duration
 
 
-def run(filename: pathlib.Path):
-    print(filename)
+def run_ahc_exe(filename: pathlib.Path):
+    print(filename.name)
     cmd = "ahc.exe > ./out/" + filename.name
     path = os.path.join(os.getcwd(), filename)
     with open(path) as text:
         proc = subprocess.run(cmd, shell=True, stdin=text,
                               stdout=PIPE, stderr=PIPE, text=True)
-        cnt, score, duration = parse(proc)
+        cnt, score, duration = parse_from_stderr(proc.stderr)
     return filename.name, cnt, score, duration
 
 
 def run_multi():
-    total_score = 0
-    total_cnt = 0
     data_path = "./data/"
     input_list = []
-    for i, filename in enumerate(pathlib.Path(data_path).glob("*.txt")):
+    for filename in pathlib.Path(data_path).glob("*.txt"):
         input_list.append(filename)
-
     with Pool(processes=4) as p:
-        result_list = p.map(func=run, iterable=input_list)
+        result_list = p.map(func=run_ahc_exe, iterable=input_list)
     result_list.sort()
-    print(result_list)
+    return result_list
 
 
-def compute_score():
+def output_result(result_list):
     total_score = 0
     total_cnt = 0
-    data_path = "./data/"
-    for i, filename in enumerate(pathlib.Path(data_path).glob("*.txt")):
-        print(filename)
-        cmd = "ahc.exe > ./out/" + filename.name
-        path = os.path.join(os.getcwd(), filename)
-        with open(path) as text:
-            proc = subprocess.run(cmd, shell=True, stdin=text,
-                                  stdout=PIPE, stderr=PIPE, text=True)
-
-            cnt, score, duration = parse(proc)
-            total_cnt += cnt
-            total_score += score
-
-            check_point_col = set_color_to_check_point(i)
-            score_col = set_color_to_score(score)
-
-            print("{} => ".format(filename.name[:4])
-                  + "total_score: {}{}{}, ".format(check_point_col,
-                                                   total_score, Color.RESET)
-                  + "score: {}{}{}, ".format(score_col, score, Color.RESET)
-                  + "cnt: {:5d}, ".format(cnt)
-                  + "total_cnt: {}{}{}, " .format(check_point_col,
-                                                  total_cnt, Color.RESET)
-                  + "time: {:.3f}".format(duration))
-
+    for i, result in enumerate(result_list):
+        filename, cnt, score, duration = result
+        check_point_col = set_color_to_check_point(i)
+        score_col = set_color_to_score(score)
+        print("{} => ".format(filename[:4])
+              + "total_score: {}{}{}, ".format(check_point_col,
+                                               total_score, Color.RESET)
+              + "score: {}{}{}, ".format(score_col, score, Color.RESET)
+              + "cnt: {:5d}, ".format(cnt)
+              + "total_cnt: {}{}{}, " .format(check_point_col,
+                                              total_cnt, Color.RESET)
+              + "time: {:.3f}".format(duration))
     print("total: {}".format(total_score))
-    return total_score
-
-# with mlflow.start_run(run_name='2'):
-#     for epoch in range(0, 5):
-#         mlflow.log_metric(key="train acc", value = 2*epoch, step=epoch)
 
 
 if __name__ == "__main__":
     prepare_execute_file()
-    run_multi()
+    result_list = run_multi()
+    output_result(result_list)
+
     # total_score = compute_score()
     # with mlflow.start_run(run_name="ahc"):
     #     mlflow.log_metric(key="total score", value=total_score)
