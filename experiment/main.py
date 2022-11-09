@@ -5,6 +5,8 @@ from subprocess import PIPE
 import os
 from color import *
 import datetime
+from multiprocessing import Pool
+
 
 def prepare_execute_file():
     os.chdir('../')
@@ -27,6 +29,31 @@ def parse(proc):
     score = int(out[1])
     duration = float(out[2])
     return cnt, score, duration
+
+
+def run(filename: pathlib.Path):
+    print(filename)
+    cmd = "ahc.exe > ./out/" + filename.name
+    path = os.path.join(os.getcwd(), filename)
+    with open(path) as text:
+        proc = subprocess.run(cmd, shell=True, stdin=text,
+                              stdout=PIPE, stderr=PIPE, text=True)
+        cnt, score, duration = parse(proc)
+    return filename.name, cnt, score, duration
+
+
+def run_multi():
+    total_score = 0
+    total_cnt = 0
+    data_path = "./data/"
+    input_list = []
+    for i, filename in enumerate(pathlib.Path(data_path).glob("*.txt")):
+        input_list.append(filename)
+
+    with Pool(processes=4) as p:
+        result_list = p.map(func=run, iterable=input_list)
+    result_list.sort()
+    print(result_list)
 
 
 def compute_score():
@@ -67,6 +94,7 @@ def compute_score():
 
 if __name__ == "__main__":
     prepare_execute_file()
-    total_score = compute_score()
-    with mlflow.start_run(run_name="ahc"):
-        mlflow.log_metric(key="total score", value=total_score)
+    run_multi()
+    # total_score = compute_score()
+    # with mlflow.start_run(run_name="ahc"):
+    #     mlflow.log_metric(key="total score", value=total_score)
