@@ -1,26 +1,21 @@
 #![allow(unused)]
 use itertools::Itertools;
 use my_lib::*;
-use num::{integer::Roots, Integer, ToPrimitive};
 use procon_input::*;
-use proconio::{
-    fastout,
-    //input,
-    marker::{Bytes, Chars},
-};
 use rand::prelude::*;
 use rand_pcg::Mcg128Xsl64;
 use std::{
+    cell::RefCell,
     clone,
+    cmp::{max, min},
     collections::{BTreeMap, BTreeSet, BinaryHeap, VecDeque},
     iter::FromIterator,
-    ops::Range,
+    mem::swap,
     ops::*,
+    rc::Rc,
     slice::SliceIndex,
 };
-use superslice::Ext;
 
-//#[fastout]
 fn main() {
     let start_time = my_lib::time::update();
 
@@ -313,138 +308,198 @@ mod my_lib {
             }
         }
     }
+
+    pub trait SortFloat {
+        fn sort(&mut self);
+        fn sort_rev(&mut self);
+    }
+
+    impl SortFloat for Vec<f64> {
+        fn sort(&mut self) {
+            //! 浮動小数点としてNANが含まれないことを約束されている場合のsort処理<br>
+            //! 小さい順
+            self.sort_by(|a, b| a.partial_cmp(b).unwrap());
+        }
+        fn sort_rev(&mut self) {
+            //! 浮動小数点としてNANが含まれないことを約束されている場合のsort処理<br>  
+            //! 大きい順
+            self.sort_by(|a, b| b.partial_cmp(a).unwrap());
+        }
+    }
+
+    pub trait EvenOdd {
+        fn is_even(&self) -> bool;
+        fn is_odd(&self) -> bool;
+    }
+
+    impl EvenOdd for usize {
+        fn is_even(&self) -> bool {
+            self % 2 == 0
+        }
+
+        fn is_odd(&self) -> bool {
+            self % 2 != 0
+        }
+    }
 }
 
 mod procon_input {
-    //! This input module is written with reference to MoSoon.
-    //! (https://atcoder.jp/users/MoSooN)
-    //! Very, Very thank to MoSoon!
-    use std::io::*;
+    use std::{any::type_name, io::*};
 
-    fn read<T: std::str::FromStr>() -> T {
+    fn read_block<T: std::str::FromStr>() -> T {
         let mut s = String::new();
-        stdin().read_line(&mut s).ok();
-        s.trim().parse().ok().unwrap()
+        let mut buf = [0];
+        loop {
+            stdin().read(&mut buf).expect("can't read.");
+            let c = buf[0] as char;
+            if c == ' ' {
+                break;
+            }
+            // for Linux
+            if c == '\n' {
+                break;
+            }
+            // for Windows
+            if c == '\r' {
+                // pop LR(line feed)
+                stdin().read(&mut buf).expect("can't read.");
+                break;
+            }
+            s.push(c);
+        }
+        s.parse::<T>()
+            .unwrap_or_else(|_| panic!("can't parse '{}' to {}", s, type_name::<T>()))
     }
 
-    pub fn read_vec<T: std::str::FromStr>() -> Vec<T> {
-        read::<String>()
-            .split_whitespace()
-            .map(|e| e.parse().ok().unwrap())
-            .collect()
-    }
-
-    // pub fn read_mat<T: std::str::FromStr>(n: usize) -> Vec<Vec<T>> {
-    //     (0..n).map(|_| read_vec()).collect()
-    // }
-
-    pub fn read_i() -> (i64) {
-        let mut str = String::new();
-        let _ = stdin().read_line(&mut str).unwrap();
-        let mut iter = str.split_whitespace();
-        iter.next().unwrap().parse::<i64>().unwrap()
+    pub fn read_i() -> i64 {
+        read_block::<i64>()
     }
 
     pub fn read_ii() -> (i64, i64) {
-        let mut str = String::new();
-        let _ = stdin().read_line(&mut str).unwrap();
-        let mut iter = str.split_whitespace();
-        (
-            iter.next().unwrap().parse::<i64>().unwrap(),
-            iter.next().unwrap().parse::<i64>().unwrap(),
-        )
+        (read_block::<i64>(), read_block::<i64>())
     }
 
     pub fn read_iii() -> (i64, i64, i64) {
-        let mut str = String::new();
-        let _ = stdin().read_line(&mut str).unwrap();
-        let mut iter = str.split_whitespace();
         (
-            iter.next().unwrap().parse::<i64>().unwrap(),
-            iter.next().unwrap().parse::<i64>().unwrap(),
-            iter.next().unwrap().parse::<i64>().unwrap(),
+            read_block::<i64>(),
+            read_block::<i64>(),
+            read_block::<i64>(),
         )
     }
 
-    pub fn read_u() -> (usize) {
-        let mut str = String::new();
-        let _ = stdin().read_line(&mut str).unwrap();
-        let mut iter = str.split_whitespace();
-        iter.next().unwrap().parse::<usize>().unwrap()
+    pub fn read_iiii() -> (i64, i64, i64, i64) {
+        (
+            read_block::<i64>(),
+            read_block::<i64>(),
+            read_block::<i64>(),
+            read_block::<i64>(),
+        )
+    }
+
+    pub fn read_u() -> usize {
+        read_block::<usize>()
     }
 
     pub fn read_uu() -> (usize, usize) {
-        let mut str = String::new();
-        let _ = stdin().read_line(&mut str).unwrap();
-        let mut iter = str.split_whitespace();
-        (
-            iter.next().unwrap().parse::<usize>().unwrap(),
-            iter.next().unwrap().parse::<usize>().unwrap(),
-        )
+        (read_block::<usize>(), read_block::<usize>())
     }
 
     pub fn read_uuu() -> (usize, usize, usize) {
-        let mut str = String::new();
-        let _ = stdin().read_line(&mut str).unwrap();
-        let mut iter = str.split_whitespace();
         (
-            iter.next().unwrap().parse::<usize>().unwrap(),
-            iter.next().unwrap().parse::<usize>().unwrap(),
-            iter.next().unwrap().parse::<usize>().unwrap(),
+            read_block::<usize>(),
+            read_block::<usize>(),
+            read_block::<usize>(),
         )
     }
 
-    pub fn read_u_vec<T: std::str::FromStr>() -> Vec<usize> {
-        read::<String>()
-            .split_whitespace()
-            .map(|e| e.parse().ok().unwrap())
-            .collect()
+    pub fn read_uuuu() -> (usize, usize, usize, usize) {
+        (
+            read_block::<usize>(),
+            read_block::<usize>(),
+            read_block::<usize>(),
+            read_block::<usize>(),
+        )
     }
 
-    pub fn read_f() -> (f64) {
-        let mut str = String::new();
-        let _ = stdin().read_line(&mut str).unwrap();
-        let mut iter = str.split_whitespace();
-        iter.next().unwrap().parse::<f64>().unwrap()
+    pub fn read_f() -> f64 {
+        read_block::<f64>()
     }
 
     pub fn read_ff() -> (f64, f64) {
-        let mut str = String::new();
-        let _ = stdin().read_line(&mut str).unwrap();
-        let mut iter = str.split_whitespace();
-        (
-            iter.next().unwrap().parse::<f64>().unwrap(),
-            iter.next().unwrap().parse::<f64>().unwrap(),
-        )
+        (read_block::<f64>(), read_block::<f64>())
     }
 
-    pub fn read_c() -> (char) {
-        let mut str = String::new();
-        let _ = stdin().read_line(&mut str).unwrap();
-        let mut iter = str.split_whitespace();
-        iter.next().unwrap().parse::<char>().unwrap()
+    pub fn read_c() -> char {
+        read_block::<char>()
     }
 
     pub fn read_cc() -> (char, char) {
-        let mut str = String::new();
-        let _ = stdin().read_line(&mut str).unwrap();
-        let mut iter = str.split_whitespace();
-        (
-            iter.next().unwrap().parse::<char>().unwrap(),
-            iter.next().unwrap().parse::<char>().unwrap(),
-        )
+        (read_block::<char>(), read_block::<char>())
     }
 
-    pub fn read_chars() -> Vec<char> {
-        let mut vec = Vec::new();
-        read::<String>()
-            .as_bytes()
-            .iter()
-            .for_each(|&b| vec.push(b as char));
-        vec
+    fn read_line() -> String {
+        let mut s = String::new();
+        stdin().read_line(&mut s).expect("can't read.");
+        s.trim()
+            .parse()
+            .unwrap_or_else(|_| panic!("can't trim in read_line()"))
     }
 
-    // pub fn read_string() -> String {
-    //     read::<String>()
-    // }
+    pub fn read_vec<T: std::str::FromStr>() -> Vec<T> {
+        read_line()
+            .split_whitespace()
+            .map(|e| {
+                e.parse()
+                    .unwrap_or_else(|_| panic!("can't parse '{}' to {}", e, type_name::<T>()))
+            })
+            .collect()
+    }
+
+    pub fn read_i_vec() -> Vec<i64> {
+        read_line()
+            .split_whitespace()
+            .map(|e| {
+                e.parse()
+                    .unwrap_or_else(|_| panic!("can't parse '{}' to {}", e, type_name::<i64>()))
+            })
+            .collect()
+    }
+
+    pub fn read_u_vec() -> Vec<usize> {
+        read_line()
+            .split_whitespace()
+            .map(|e| {
+                e.parse()
+                    .unwrap_or_else(|_| panic!("can't parse '{}' to {}", e, type_name::<usize>()))
+            })
+            .collect()
+    }
+
+    pub fn read_f_vec() -> Vec<f64> {
+        read_line()
+            .split_whitespace()
+            .map(|e| {
+                e.parse()
+                    .unwrap_or_else(|_| panic!("can't parse '{}' to {}", e, type_name::<f64>()))
+            })
+            .collect()
+    }
+
+    pub fn read_c_vec() -> Vec<char> {
+        read_line()
+            .split_whitespace()
+            .map(|e| {
+                e.parse()
+                    .unwrap_or_else(|_| panic!("can't parse '{}' to {}", e, type_name::<char>()))
+            })
+            .collect()
+    }
+
+    pub fn read_line_as_chars() -> Vec<char> {
+        read_line().as_bytes().iter().map(|&b| b as char).collect()
+    }
+
+    pub fn read_string() -> String {
+        read_block()
+    }
 }
