@@ -1,4 +1,4 @@
-import mlflow
+#import mlflow
 import pathlib
 import subprocess
 from subprocess import PIPE
@@ -58,6 +58,8 @@ def output_result(result_list):
     total_cnt = 0
     for i, result in enumerate(result_list):
         filename, cnt, score, duration = result
+        total_score += score
+        total_cnt += cnt
         check_point_col = set_color_to_check_point(i)
         score_col = set_color_to_score(score)
         print("{} => ".format(filename[:4])
