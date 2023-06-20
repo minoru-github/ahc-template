@@ -496,10 +496,17 @@ mod procon_input {
     }
 
     pub fn read_line_as_chars() -> Vec<char> {
+        //! a b c d -> \[a, b, c, d]
         read_line().as_bytes().iter().map(|&b| b as char).collect()
     }
 
     pub fn read_string() -> String {
-        read_block()
+        //! abcd -> "abcd"
+        read_block::<String>()
+    }
+
+    pub fn read_string_as_chars() -> Vec<char> {
+        //! abcd -> \[a, b, c, d]
+        read_block::<String>().chars().collect::<Vec<char>>()
     }
 }
