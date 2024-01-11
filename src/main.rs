@@ -1,4 +1,4 @@
-#![allow(unused)]
+#![allow(unused, non_snake_case)]
 use itertools::Itertools;
 use my_lib::*;
 use procon_input::*;
